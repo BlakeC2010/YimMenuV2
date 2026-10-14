@@ -21,6 +21,7 @@ namespace YimMenu::Network
 		static ScriptFunction sendToClouds("shop_controller"_J, ScriptPointer("SendToClouds", "2D 00 02 00 00 72 5D ? ? ? 72"));
 		static ScriptGlobal join_type_global(1575048);
 
+		LOGF(INFO, "[SessionDiag] Session-type join requested (type={})", static_cast<int>(to_launch));
 		sendToClouds.Call<void>();
 		*join_type_global.As<JoinType*>() = to_launch;
 	}
@@ -32,13 +33,16 @@ namespace YimMenu::Network
 			NativeHooks::AddHook("maintransition"_J, NativeIndex::NETWORK_SESSION_HOST, [](rage::scrNativeCallContext* ctx) {
 				if (session_to_join)
 				{
+					LOGF(INFO, "[SessionDiag] Attempting queued session-info join");
 					if (!Pointers.JoinSessionByInfo(*Pointers.NetworkSession, &*session_to_join, 1, 1 | 2, nullptr, 0))
 					{
+						LOGF(WARNING, "[SessionDiag] Session-info join request was rejected immediately");
 						Notifications::Show("Joiner", "Failed to join session", NotificationType::Error);
 						NativeInvoker::GetNativeHandler(NativeIndex::NETWORK_SESSION_HOST)(ctx);
 					}
 					else
 					{
+						LOGF(INFO, "[SessionDiag] Session-info join request accepted (connection not yet confirmed)");
 						ctx->SetReturnValue(TRUE);
 					}
 					session_to_join = std::nullopt;
@@ -53,10 +57,12 @@ namespace YimMenu::Network
 
 		if (SCRIPT::GET_NUMBER_OF_THREADS_RUNNING_THE_SCRIPT_WITH_THIS_HASH("maintransition"_J) > 0 || STREAMING::IS_PLAYER_SWITCH_IN_PROGRESS())
 		{
+			LOGF(WARNING, "[SessionDiag] Session-info join blocked by an existing transition or player switch");
 			Notifications::Show("Joiner", "An existing transition is in progress", NotificationType::Error);
 			return;
 		}
 
+		LOGF(INFO, "[SessionDiag] Queuing session-info join for next transition");
 		session_to_join = *info;
 		LaunchJoinType(JoinType::NEW_PUBLIC);
 	}
@@ -68,11 +74,13 @@ namespace YimMenu::Network
 		rage::rlGamerHandle handle(id);
 		bool success;
 
+		LOGF(INFO, "[SessionDiag] Requesting session information for a player (RID omitted)");
 		if (Pointers.GetSessionByGamerHandle(0, &handle, 1, &result, 1, &success, &status))
 		{
 			while (status.m_Status == 1)
 				ScriptMgr::Yield();
 
+			LOGF(INFO, "[SessionDiag] Session-info lookup completed (status={}, error_code={})", status.m_Status, status.m_ErrorCode);
 			if (status.m_Status == 3 && success)
 			{
 				JoinSessionInfo(&result.m_SessionInfo);
@@ -85,6 +93,7 @@ namespace YimMenu::Network
 		}
 		else
 		{
+			LOGF(WARNING, "[SessionDiag] Session-info lookup could not be started");
 			Notifications::Show("Joiner", "Failed to get session info by RID", NotificationType::Error);
 			return;
 		}
