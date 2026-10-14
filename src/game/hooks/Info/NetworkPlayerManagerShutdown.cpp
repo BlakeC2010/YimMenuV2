@@ -9,6 +9,8 @@ namespace YimMenu::Hooks
 		if (!g_Running)
 			return BaseHook::Get<Info::NetworkPlayerMgrShutdown, DetourHook<decltype(&Info::NetworkPlayerMgrShutdown)>>()->Original()(mgr);
 
+		// A shutdown also occurs during normal session changes; this is not an error on its own.
+		LOGF(INFO, "[SessionDiag] Network player manager shutdown observed (reason not available)");
 		Players::Shutdown();
 		BaseHook::Get<Info::NetworkPlayerMgrShutdown, DetourHook<decltype(&Info::NetworkPlayerMgrShutdown)>>()->Original()(mgr);
 	}
