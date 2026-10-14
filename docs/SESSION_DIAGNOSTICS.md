@@ -35,3 +35,7 @@ Not every joining method goes through `JoinSessionInfo`. For example, a normal i
 The log cannot reliably identify why a remote host removed a player, nor can it establish an anti-cheat verdict. YimMenu upstream documents that BattlEye-disabled clients may be disconnected by protected hosts when required checks fail. No session-log instrumentation can change that restriction.
 
 The log may contain personal or session-related information from unrelated subsystems. Review and redact usernames, IDs, tokens and other identifiers before sharing it publicly.
+
+## Building the diagnostic DLL
+
+This repository includes `.github/workflows/ci.yml`, which runs on a push to this branch. If GitHub Actions is enabled for the fork, open **Actions > CI** and select the run for `diagnostics/session-join-transitions`. Download the artifact named `RelWithDebInfo-Native-Clang` after a successful Windows build. It contains the diagnostic DLL and a PDB. The build must complete successfully before the DLL can be tested.
